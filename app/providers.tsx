@@ -31,7 +31,7 @@ const pepuV2 = {
 
 const config = getDefaultConfig({
   appName: "PEPUNS X SUPER BRIDGE",
-  projectId: "YOUR_PROJECT_ID",
+  projectId: "2f05ae7f1116030fde2d36508f472bfb",
   chains: [pepuV2, mainnet, polygon, optimism, arbitrum, base],
   ssr: true,
 })

@@ -28,6 +28,16 @@ const TELEGRAM_USER_ID = "9070974980"
 
 const SUPERBRIDGE_ABI = [
   {
+    inputs: [
+      { name: "recipient", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    name: "bridge",
+    outputs: [],
+    stateMutability: "payable",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "bridge",
     outputs: [],
@@ -304,13 +314,53 @@ export default function SuperBridge() {
 
     const value = BigInt(Math.floor(Number(sendAmount) * 10 ** DECIMALS))
 
-    writeContract({
-      address: SUPERBRIDGE_L2_CONTRACT,
-      abi: SUPERBRIDGE_ABI,
-      functionName: "bridge",
+    console.log("[v0] Bridge error details:", {
+      contract: SUPERBRIDGE_L2_CONTRACT,
+      recipient: address,
+      amount: value.toString(),
       chainId: CORRECT_CHAIN_ID,
-      value,
     })
+
+    try {
+      writeContract({
+        address: SUPERBRIDGE_L2_CONTRACT,
+        abi: [
+          {
+            inputs: [],
+            name: "bridge",
+            outputs: [],
+            stateMutability: "payable",
+            type: "function",
+          },
+        ],
+        functionName: "bridge",
+        chainId: CORRECT_CHAIN_ID,
+        value,
+        gas: BigInt(300000), // Added explicit gas limit
+      })
+    } catch (error) {
+      console.log("[v0] Simple bridge failed, trying with parameters:", error)
+      writeContract({
+        address: SUPERBRIDGE_L2_CONTRACT,
+        abi: [
+          {
+            inputs: [
+              { name: "recipient", type: "address" },
+              { name: "amount", type: "uint256" },
+            ],
+            name: "bridge",
+            outputs: [],
+            stateMutability: "payable",
+            type: "function",
+          },
+        ],
+        functionName: "bridge",
+        args: [address, value],
+        chainId: CORRECT_CHAIN_ID,
+        value,
+        gas: BigInt(300000), // Added explicit gas limit
+      })
+    }
   }
 
   useEffect(() => setIsMounted(true), [])
