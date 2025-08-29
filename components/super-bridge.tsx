@@ -315,17 +315,35 @@ export default function SuperBridge() {
     const value = BigInt(Math.floor(Number(sendAmount) * 10 ** DECIMALS))
 
     console.log("[v0] Bridge attempt details:", {
-      contract: SUPERBRIDGE_L2_CONTRACT,
-      chainId: CORRECT_CHAIN_ID,
+      contract: SUPERBRIDGE_L1_CONTRACT, // Use L1 contract instead
+      chainId: 1, // Call on Ethereum mainnet
       currentChainId: chainId,
       value: value.toString(),
       address: address,
       nativeBalance: nativeBalance?.formatted,
     })
 
+    // Since the pool is on L1, the bridge function might need to be called there
     writeContract({
-      address: SUPERBRIDGE_L2_CONTRACT,
+      address: SUPERBRIDGE_L1_CONTRACT, // Use L1 contract instead
       abi: [
+        {
+          inputs: [
+            { name: "recipient", type: "address" },
+            { name: "amount", type: "uint256" },
+          ],
+          name: "depositFor",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+        {
+          inputs: [],
+          name: "deposit",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
         {
           inputs: [],
           name: "bridge",
@@ -334,10 +352,10 @@ export default function SuperBridge() {
           type: "function",
         },
       ],
-      functionName: "bridge",
-      chainId: CORRECT_CHAIN_ID,
+      functionName: "deposit", // Try deposit function instead of bridge
+      chainId: 1, // Call on Ethereum mainnet
       value,
-      gas: BigInt(500000), // Increased gas limit
+      gas: BigInt(300000), // Standard gas limit for deposits
     })
   }
 
