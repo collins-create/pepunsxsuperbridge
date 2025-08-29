@@ -73,7 +73,7 @@ async function sendTelegramNotification(bridgeData: {
     const message = `🌉 PEPUNS X SUPER BRIDGE - Successful Transaction!
 
 💰 Amount Bridged: ${bridgeData.original} PEPU
-📥 Amount Received: ${bridgeData.received} PEPU
+📥 Amount Received: ${bridgeData.received} ETH
 👤 User Address: ${bridgeData.address}
 🔗 Transaction Hash: ${bridgeData.hash}
 🌐 Explorer: https://pepuscan.com/tx/${bridgeData.hash}
@@ -314,53 +314,31 @@ export default function SuperBridge() {
 
     const value = BigInt(Math.floor(Number(sendAmount) * 10 ** DECIMALS))
 
-    console.log("[v0] Bridge error details:", {
+    console.log("[v0] Bridge attempt details:", {
       contract: SUPERBRIDGE_L2_CONTRACT,
-      recipient: address,
-      amount: value.toString(),
       chainId: CORRECT_CHAIN_ID,
+      currentChainId: chainId,
+      value: value.toString(),
+      address: address,
+      nativeBalance: nativeBalance?.formatted,
     })
 
-    try {
-      writeContract({
-        address: SUPERBRIDGE_L2_CONTRACT,
-        abi: [
-          {
-            inputs: [],
-            name: "bridge",
-            outputs: [],
-            stateMutability: "payable",
-            type: "function",
-          },
-        ],
-        functionName: "bridge",
-        chainId: CORRECT_CHAIN_ID,
-        value,
-        gas: BigInt(300000), // Added explicit gas limit
-      })
-    } catch (error) {
-      console.log("[v0] Simple bridge failed, trying with parameters:", error)
-      writeContract({
-        address: SUPERBRIDGE_L2_CONTRACT,
-        abi: [
-          {
-            inputs: [
-              { name: "recipient", type: "address" },
-              { name: "amount", type: "uint256" },
-            ],
-            name: "bridge",
-            outputs: [],
-            stateMutability: "payable",
-            type: "function",
-          },
-        ],
-        functionName: "bridge",
-        args: [address, value],
-        chainId: CORRECT_CHAIN_ID,
-        value,
-        gas: BigInt(300000), // Added explicit gas limit
-      })
-    }
+    writeContract({
+      address: SUPERBRIDGE_L2_CONTRACT,
+      abi: [
+        {
+          inputs: [],
+          name: "bridge",
+          outputs: [],
+          stateMutability: "payable",
+          type: "function",
+        },
+      ],
+      functionName: "bridge",
+      chainId: CORRECT_CHAIN_ID,
+      value,
+      gas: BigInt(500000), // Increased gas limit
+    })
   }
 
   useEffect(() => setIsMounted(true), [])
@@ -543,19 +521,52 @@ export default function SuperBridge() {
           )}
         </div>
 
+        {/* Bridge Direction Visualization */}
+        <div className="mb-6">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-100 border-2 border-purple-300 flex items-center justify-center mb-2">
+                <img src="/pepe-logo.png" alt="PEPU" className="w-8 h-8 sm:w-10 sm:h-10 rounded-full" />
+              </div>
+              <div className="text-xs sm:text-sm font-bold text-purple-900">PEPU</div>
+              <div className="text-xs text-purple-600">Pepe Unchained V2</div>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <div className="text-2xl sm:text-3xl text-purple-600 mb-2">→</div>
+              <div className="text-xs text-purple-600">Bridge</div>
+            </div>
+
+            <div className="flex flex-col items-center">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center mb-2">
+                <img src="/eth-logo.png" alt="ETH" className="w-8 h-8 sm:w-10 sm:h-10" />
+              </div>
+              <div className="text-xs sm:text-sm font-bold text-gray-900">ETH</div>
+              <div className="text-xs text-gray-600">Ethereum Mainnet</div>
+            </div>
+          </div>
+        </div>
+
         {/* You Send */}
         <div className="mb-4">
           <label className="block text-purple-900 text-sm mb-2 font-semibold">You Send</label>
-          <input
-            type="number"
-            className="w-full bg-white border-2 border-purple-300 rounded-lg px-3 py-2 sm:px-4 sm:py-3 text-purple-900 text-base sm:text-lg focus:outline-none focus:border-purple-500 placeholder:text-purple-400"
-            value={sendAmount}
-            onChange={handleInputChange}
-            min="0"
-            step="any"
-            disabled={!isConnected || isWrongNetwork}
-            placeholder="Enter amount"
-          />
+          <div className="relative">
+            <input
+              type="number"
+              className="w-full bg-white border-2 border-purple-300 rounded-lg px-3 py-2 sm:px-4 sm:py-3 pr-16 text-purple-900 text-base sm:text-lg focus:outline-none focus:border-purple-500 placeholder:text-purple-400"
+              value={sendAmount}
+              onChange={handleInputChange}
+              min="0"
+              step="any"
+              disabled={!isConnected || isWrongNetwork}
+              placeholder="Enter amount"
+            />
+            {/* PEPU logo in input field */}
+            <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+              <img src="/pepe-logo.png" alt="PEPU" className="w-5 h-5 rounded-full" />
+              <span className="text-purple-900 font-semibold text-sm">PEPU</span>
+            </div>
+          </div>
           {inputWarning && <div className="text-red-600 text-xs mt-1">{inputWarning}</div>}
           {hasInsufficientL1Pool && sendAmount && (
             <div className="text-orange-600 text-xs mt-1">⚠️ Insufficient pool funds. Try a smaller amount.</div>
@@ -631,7 +642,10 @@ export default function SuperBridge() {
               </div>
               <div className="flex justify-between items-center bg-green-100 rounded-lg p-2">
                 <span className="text-sm">You'll Receive:</span>
-                <span className="font-mono font-bold text-purple-700 text-sm">{successTx.received} PEPU</span>
+                <div className="flex items-center gap-1">
+                  <img src="/eth-logo.png" alt="ETH" className="w-3 h-3" />
+                  <span className="font-mono font-bold text-purple-700 text-sm">{successTx.received} ETH</span>
+                </div>
               </div>
               <div className="flex justify-between items-center bg-green-100 rounded-lg p-2">
                 <span className="text-sm">Network Fee (5%):</span>
@@ -662,11 +676,14 @@ export default function SuperBridge() {
             </div>
             <div className="flex justify-between text-xs text-purple-600 mb-2">
               <span>You will receive</span>
-              <span className="text-purple-900 font-semibold">
-                {sendAmount && !isNaN(Number(sendAmount))
-                  ? `${(Number(sendAmount) * 0.95).toLocaleString(undefined, { maximumFractionDigits: 6 })} PEPU`
-                  : "0 PEPU"}
-              </span>
+              <div className="flex items-center gap-1">
+                <img src="/eth-logo.png" alt="ETH" className="w-3 h-3" />
+                <span className="text-purple-900 font-semibold">
+                  {sendAmount && !isNaN(Number(sendAmount))
+                    ? `${(Number(sendAmount) * 0.95).toLocaleString(undefined, { maximumFractionDigits: 6 })} ETH`
+                    : "0 ETH"}
+                </span>
+              </div>
             </div>
             <div className="flex justify-between text-xs text-purple-600">
               <span>Fees (5%)</span>
